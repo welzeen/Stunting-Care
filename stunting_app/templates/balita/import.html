@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block title %}Import Excel{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'balita_list' %}">Data Balita</a></li>
+<li class="breadcrumb-item active">Import Excel</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0">Import Data dari Excel</h4>
+    <a href="{% url 'balita_list' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Kembali
+    </a>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="card p-4">
+            <h6 class="fw-bold mb-4 text-primary"><i class="bi bi-upload me-2"></i>Upload File Excel</h6>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label fw-semibold small">{{ form.file.label }}</label>
+                    {{ form.file }}
+                    <div class="form-text">Format yang didukung: .xlsx, .xls</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold small">{{ form.dataset_type.label }}</label>
+                    {{ form.dataset_type }}
+                </div>
+                <div class="mb-4 form-check">
+                    {{ form.overwrite }}
+                    <label class="form-check-label small fw-semibold">{{ form.overwrite.label }}</label>
+                    <div class="form-text">Jika dicentang, data dengan kode yang sama akan ditimpa.</div>
+                </div>
+                <button type="submit" class="btn btn-success px-4">
+                    <i class="bi bi-cloud-upload me-1"></i>Import Sekarang
+                </button>
+            </form>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card p-4 mb-3 border-info">
+            <h6 class="fw-bold mb-3 text-info"><i class="bi bi-info-circle me-2"></i>Panduan Format Excel</h6>
+            <p class="small text-muted mb-2">Pastikan file Excel memiliki kolom berikut:</p>
+            <table class="table table-sm small">
+                <thead><tr><th>Nama Kolom</th><th>Keterangan</th></tr></thead>
+                <tbody>
+                    <tr><td><code>Nama/Kode balita</code></td><td>Kode unik balita</td></tr>
+                    <tr><td><code>JK</code></td><td>L atau P</td></tr>
+                    <tr><td><code>Umur</code></td><td>1-34 Bulan / 35-69 Bulan</td></tr>
+                    <tr><td><code>Berat</code></td><td>Berat badan (kg)</td></tr>
+                    <tr><td><code>Tinggi</code></td><td>Tinggi badan (cm)</td></tr>
+                    <tr><td><code>BB/U</code></td><td>Status berat/umur</td></tr>
+                    <tr><td><code>TB/U</code></td><td>Status tinggi/umur</td></tr>
+                    <tr><td><code>Status Gizi</code></td><td>Kategori gizi</td></tr>
+                    <tr><td><code>Status ASI Ekslusif</code></td><td>Ya / Tidak</td></tr>
+                    <tr><td><code>Status Stunting</code></td><td>Label kelas (opsional)</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="card p-4 border-warning">
+            <h6 class="fw-bold mb-2 text-warning"><i class="bi bi-exclamation-triangle me-2"></i>Catatan Penting</h6>
+            <ul class="small text-muted ps-3 mb-0">
+                <li>Data yang sudah ada tidak akan ditimpa kecuali opsi "timpa" diaktifkan</li>
+                <li>Baris dengan kode balita kosong akan dilewati</li>
+                <li>Sesuaikan format Excel dengan yang ada di dataset Anda</li>
+                <li>File dari sheet "Preprocessing" atau "Dataset" di file contoh dapat langsung digunakan</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

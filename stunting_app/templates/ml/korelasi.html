@@ -1,0 +1,338 @@
+{% extends 'base.html' %}
+{% load ml_filters %}
+{% block title %}Analisis Korelasi{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'ml_dashboard' %}">Machine Learning</a></li>
+<li class="breadcrumb-item active">Analisis Korelasi</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.interp-table td,.interp-table th{font-size:.8rem;padding:7px 12px}
+.rank-bar-wrap{background:#f0fdfa;border-radius:6px;height:22px;position:relative;overflow:hidden}
+.rank-bar-fill{height:100%;border-radius:6px;transition:width .6s ease}
+.rank-row{transition:background .15s;border-radius:8px}
+.rank-row:hover{background:#f0fdfa}
+.badge-stkuat{background:#ccfbf1;color:#0f766e}
+.badge-kuat{background:#fef2f2;color:#b91c1c}
+.badge-sedang{background:#fffbeb;color:#b45309}
+.badge-lemah{background:#f1f5f9;color:#475569}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="fw-bold mb-1">Analisis Korelasi Variabel</h4>
+    <p class="text-muted small mb-0">Cramér's V — kekuatan asosiasi antar variabel kategorik (0 = tidak ada, 1 = sempurna)</p>
+  </div>
+  <form method="get">
+    <select name="dataset_type" class="form-select form-select-sm" onchange="this.form.submit()" style="width:auto">
+      <option value="all"      {% if dataset_type == 'all' %}selected{% endif %}>Semua Data</option>
+      <option value="training" {% if dataset_type == 'training' %}selected{% endif %}>Training</option>
+      <option value="testing"  {% if dataset_type == 'testing' %}selected{% endif %}>Testing</option>
+    </select>
+  </form>
+</div>
+
+{% if result.total_data == 0 %}
+<div class="card p-5 text-center">
+  <i class="bi bi-bar-chart-steps fs-1 text-muted d-block mb-3"></i>
+  <h5 class="fw-bold">Tidak Ada Data</h5>
+  <p class="text-muted">Belum ada data balita dengan label status stunting yang tersedia.</p>
+</div>
+{% else %}
+
+<!-- Cards ringkasan -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3">
+    <div class="card p-3">
+      <div class="text-muted small fw-semibold mb-1">Total Data</div>
+      <div class="fw-bold" style="font-size:1.6rem">{{ result.total_data }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="card p-3">
+      <div class="text-muted small fw-semibold mb-1">Variabel Terkuat</div>
+      <div class="fw-bold" style="font-size:.9rem">{{ result.korelasi_target.0.label }}</div>
+      <div class="small fw-bold" style="color:#0d9488">V = {{ result.korelasi_target.0.nilai }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="card p-3">
+      {% with result.korelasi_target|last as lk %}
+      <div class="text-muted small fw-semibold mb-1">Variabel Terlemah</div>
+      <div class="fw-bold" style="font-size:.9rem">{{ lk.label }}</div>
+      <div class="small text-muted">V = {{ lk.nilai }}</div>
+      {% endwith %}
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="card p-3">
+      <div class="text-muted small fw-semibold mb-1">Jumlah Variabel</div>
+      <div class="fw-bold" style="font-size:1.6rem">{{ vars_list|length }}</div>
+      <div class="small text-muted">6 fitur + 1 target</div>
+    </div>
+  </div>
+</div>
+
+<!-- Heatmap + Ranking -->
+<div class="row g-3 mb-4">
+
+  <!-- Heatmap SVG (JS rendered) -->
+  <div class="col-lg-7">
+    <div class="card p-4">
+      <h6 class="fw-bold mb-1" style="color:#0d9488"><i class="bi bi-grid-3x3 me-2"></i>Heatmap Korelasi</h6>
+      <p class="text-muted small mb-2">Nilai Cramér's V tampil di setiap sel. Hover untuk detail.</p>
+      <!-- Legend -->
+      <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+        <span class="small text-muted">0.0</span>
+        <div style="flex:1;min-width:80px;height:10px;border-radius:5px;background:linear-gradient(90deg,#f0fdfa,#5eead4,#0d9488,#065f46)"></div>
+        <span class="small text-muted">1.0</span>
+        <div class="d-flex gap-1 ms-2 flex-wrap">
+          <span style="background:#f0fdfa;color:#64748b;border:1px solid #cbd5e1;border-radius:4px;font-size:.65rem;padding:1px 6px;font-weight:700">&lt;0.1 Lemah</span>
+          <span style="background:#5eead4;color:#0f766e;border-radius:4px;font-size:.65rem;padding:1px 6px;font-weight:700">0.1 Sedang</span>
+          <span style="background:#0d9488;color:#fff;border-radius:4px;font-size:.65rem;padding:1px 6px;font-weight:700">0.3 Kuat</span>
+          <span style="background:#065f46;color:#fff;border-radius:4px;font-size:.65rem;padding:1px 6px;font-weight:700">0.5+ S.Kuat</span>
+        </div>
+      </div>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+        <svg id="heatmapSvg" xmlns="http://www.w3.org/2000/svg" style="width:100%;min-width:380px;display:block"></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ranking bar -->
+  <div class="col-lg-5">
+    <div class="card p-4 h-100">
+      <h6 class="fw-bold mb-1" style="color:#0d9488"><i class="bi bi-bar-chart-fill me-2"></i>Pengaruh ke Status Stunting</h6>
+      <p class="text-muted small mb-3">Ranking kekuatan korelasi setiap variabel terhadap status stunting</p>
+      <div class="d-flex flex-column gap-2">
+      {% for k in result.korelasi_target %}
+      <div class="rank-row p-2">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <div class="d-flex align-items-center gap-2">
+            <span class="fw-bold text-muted" style="font-size:.7rem;min-width:14px">{{ forloop.counter }}</span>
+            <span class="fw-bold" style="font-size:.84rem">{{ k.label }}</span>
+          </div>
+          <div class="d-flex align-items-center gap-1">
+            <span class="fw-bold" style="font-size:.84rem;color:#0d9488">{{ k.nilai }}</span>
+            <span class="badge {% if k.kekuatan.0 == 'Sangat Kuat' %}badge-stkuat{% elif k.kekuatan.0 == 'Kuat' %}badge-kuat{% elif k.kekuatan.0 == 'Sedang' %}badge-sedang{% else %}badge-lemah{% endif %}" style="font-size:.65rem">{{ k.kekuatan.0 }}</span>
+          </div>
+        </div>
+        <div class="rank-bar-wrap">
+          <div class="rank-bar-fill" style="width:{{ k.persen }}%;background:{% if k.persen >= 50 %}#0d9488{% elif k.persen >= 30 %}#14b8a6{% elif k.persen >= 10 %}#5eead4{% else %}#ccfbf1{% endif %}"></div>
+          <span style="position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:.65rem;font-weight:700;color:#64748b">{{ k.persen }}%</span>
+        </div>
+      </div>
+      {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Matriks tabel lengkap -->
+<div class="card p-4 mb-4">
+  <h6 class="fw-bold mb-1" style="color:#0d9488"><i class="bi bi-table me-2"></i>Matriks Korelasi Lengkap</h6>
+  <p class="text-muted small mb-3">Klik baris untuk menyorot. Nilai diagonal = 1.00 (variabel vs dirinya sendiri).</p>
+  <div style="overflow-x:auto">
+    <table class="table table-bordered mb-0" style="font-size:.78rem;min-width:560px">
+      <thead>
+        <tr>
+          <th style="background:#f8fafc;min-width:110px">Variabel</th>
+          {% for v in vars_list %}
+          <th class="text-center" style="background:#f8fafc;min-width:72px;white-space:nowrap">{{ result.variabel_labels|get_item:v }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+      {% for v1 in vars_list %}
+      <tr style="cursor:pointer" onclick="this.style.outline=this.style.outline?'':'2px solid #0d9488'">
+        <td class="fw-bold" style="background:#f8fafc;white-space:nowrap;vertical-align:middle">{{ result.variabel_labels|get_item:v1 }}</td>
+        {% for v2 in vars_list %}
+        {% with val=result.matrix|get_item:v1|get_item:v2 %}
+        <td class="text-center fw-bold" style="vertical-align:middle;padding:10px 4px;font-size:.8rem;
+          {% if v1 == v2 %}background:#065f46;color:#fff;
+          {% elif val >= 0.5 %}background:#0d9488;color:#fff;
+          {% elif val >= 0.3 %}background:#14b8a6;color:#fff;
+          {% elif val >= 0.1 %}background:#99f6e4;color:#0f766e;
+          {% else %}background:#f0fdfa;color:#94a3b8;{% endif %}">
+          {{ val }}
+        </td>
+        {% endwith %}
+        {% endfor %}
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Panduan interpretasi -->
+<div class="card p-4">
+  <h6 class="fw-bold mb-3" style="color:#0d9488"><i class="bi bi-lightbulb me-2"></i>Panduan Interpretasi Cramér's V</h6>
+  <div class="row g-3">
+    <div class="col-md-5">
+      <table class="table table-sm interp-table mb-0">
+        <thead><tr><th>Rentang</th><th>Kekuatan</th><th>Arti</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span style="display:inline-block;width:12px;height:12px;background:#065f46;border-radius:2px;vertical-align:middle;margin-right:5px"></span>0.50–1.00</td>
+            <td><span class="badge badge-stkuat">Sangat Kuat</span></td>
+            <td class="text-muted">Pengaruh dominan</td>
+          </tr>
+          <tr>
+            <td><span style="display:inline-block;width:12px;height:12px;background:#0d9488;border-radius:2px;vertical-align:middle;margin-right:5px"></span>0.30–0.49</td>
+            <td><span class="badge badge-kuat">Kuat</span></td>
+            <td class="text-muted">Asosiasi signifikan</td>
+          </tr>
+          <tr>
+            <td><span style="display:inline-block;width:12px;height:12px;background:#5eead4;border-radius:2px;vertical-align:middle;margin-right:5px"></span>0.10–0.29</td>
+            <td><span class="badge badge-sedang">Sedang</span></td>
+            <td class="text-muted">Ada asosiasi</td>
+          </tr>
+          <tr>
+            <td><span style="display:inline-block;width:12px;height:12px;background:#f0fdfa;border:1px solid #cbd5e1;border-radius:2px;vertical-align:middle;margin-right:5px"></span>0.00–0.09</td>
+            <td><span class="badge badge-lemah">Lemah</span></td>
+            <td class="text-muted">Hampir tidak ada</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="col-md-7">
+      <div class="p-3 rounded-3" style="background:#f8fafc;border:1px solid #e4eae7;height:100%">
+        <div class="fw-bold mb-2 small">Tentang Cramér's V</div>
+        <ul class="small text-muted mb-0" style="padding-left:1.2rem;line-height:1.9">
+          <li>Dirancang khusus untuk variabel <strong>kategorik</strong></li>
+          <li>Nilai antara <strong>0</strong> (tidak ada korelasi) s/d <strong>1</strong> (sempurna)</li>
+          <li><strong>Tidak ada arah</strong> (positif/negatif) — hanya kekuatan asosiasi</li>
+          <li>Diagonal selalu <strong>1.0</strong> (variabel vs dirinya sendiri)</li>
+          <li>Berbasis uji <strong>Chi-Square</strong> yang dikoreksi bias</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const LABELS = {{ labels_json|safe }};
+const MATRIX = {{ matrix_json|safe }};
+const N = LABELS.length;
+
+function valToColor(v) {
+    if (v >= 0.9) return { bg:'#065f46', fg:'#ffffff' };
+    if (v >= 0.7) return { bg:'#047857', fg:'#ffffff' };
+    if (v >= 0.5) return { bg:'#0d9488', fg:'#ffffff' };
+    if (v >= 0.3) return { bg:'#14b8a6', fg:'#ffffff' };
+    if (v >= 0.1) return { bg:'#5eead4', fg:'#0f766e' };
+    if (v >= 0.01)return { bg:'#ccfbf1', fg:'#0f766e' };
+    return          { bg:'#f0fdfa', fg:'#94a3b8' };
+}
+
+function buildHeatmap() {
+    const svg = document.getElementById('heatmapSvg');
+    if (!svg) return;
+    svg.innerHTML = '';
+
+    const CELL = 54, GAP = 3, PAD_L = 110, PAD_T = 112;
+    const W = PAD_L + N * CELL + 24;
+    const H = PAD_T + N * CELL + 20;
+
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.setAttribute('width', '100%');
+
+    const ns = 'http://www.w3.org/2000/svg';
+    const mk = (tag, attrs) => {
+        const el = document.createElementNS(ns, tag);
+        Object.entries(attrs).forEach(([k,v]) => el.setAttribute(k, v));
+        return el;
+    };
+
+    // Column headers — rotated -45deg
+    LABELS.forEach((lbl, j) => {
+        const cx = PAD_L + j * CELL + CELL / 2;
+        const t = mk('text', {
+            x: cx, y: PAD_T - 10,
+            'text-anchor': 'end',
+            transform: `rotate(-42,${cx},${PAD_T - 10})`,
+            'font-size': '11.5', 'font-weight': '700', fill: '#374151',
+            'font-family': 'Nunito,sans-serif'
+        });
+        t.textContent = lbl;
+        svg.appendChild(t);
+    });
+
+    // Row headers
+    LABELS.forEach((lbl, i) => {
+        const cy = PAD_T + i * CELL + CELL / 2;
+        const t = mk('text', {
+            x: PAD_L - 8, y: cy,
+            'text-anchor': 'end', 'dominant-baseline': 'central',
+            'font-size': '11.5', 'font-weight': '700', fill: '#374151',
+            'font-family': 'Nunito,sans-serif'
+        });
+        t.textContent = lbl;
+        svg.appendChild(t);
+    });
+
+    // Cells
+    MATRIX.forEach(d => {
+        const i = d.y, j = d.x, v = d.v;
+        const x = PAD_L + j * CELL + GAP;
+        const y = PAD_T + i * CELL + GAP;
+        const cw = CELL - GAP * 2;
+        const { bg, fg } = valToColor(i === j ? 1 : v);
+
+        const g = mk('g', {});
+
+        const rect = mk('rect', {
+            x, y, width: cw, height: cw, rx: '7',
+            fill: i === j ? '#065f46' : bg,
+            stroke: '#fff', 'stroke-width': '1'
+        });
+
+        // Hover effect
+        rect.addEventListener('mouseenter', () => { rect.setAttribute('opacity','0.82'); tooltip.style.display='block'; });
+        rect.addEventListener('mouseleave', () => { rect.setAttribute('opacity','1'); tooltip.style.display='none'; });
+        rect.addEventListener('mousemove', e => {
+            tooltip.textContent = `${d.label} : ${v.toFixed(4)}`;
+            tooltip.style.left = (e.pageX + 12) + 'px';
+            tooltip.style.top  = (e.pageY - 28) + 'px';
+        });
+
+        const valStr = i === j ? '1.00' : v.toFixed(2);
+        const txt = mk('text', {
+            x: x + cw / 2, y: y + cw / 2,
+            'text-anchor': 'middle', 'dominant-baseline': 'central',
+            'font-size': i === j ? '13' : '11',
+            'font-weight': '800',
+            fill: i === j ? '#fff' : fg,
+            'font-family': 'Nunito,sans-serif'
+        });
+        txt.textContent = valStr;
+
+        g.appendChild(rect);
+        g.appendChild(txt);
+        svg.appendChild(g);
+    });
+}
+
+// Floating tooltip
+const tooltip = document.createElement('div');
+Object.assign(tooltip.style, {
+    position:'fixed', background:'#1c2b27', color:'#fff',
+    padding:'5px 10px', borderRadius:'6px', fontSize:'12px',
+    fontWeight:'700', pointerEvents:'none', display:'none',
+    zIndex:'9999', fontFamily:'Nunito,sans-serif', whiteSpace:'nowrap',
+    boxShadow:'0 2px 8px rgba(0,0,0,.25)'
+});
+document.body.appendChild(tooltip);
+
+document.addEventListener('DOMContentLoaded', buildHeatmap);
+window.addEventListener('resize', buildHeatmap);
+</script>
+{% endblock %}

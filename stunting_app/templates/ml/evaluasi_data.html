@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+{% block title %}Evaluasi Data Prediksi{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'ml_dashboard' %}">Machine Learning</a></li>
+<li class="breadcrumb-item active">Evaluasi Data</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">Evaluasi Hasil Prediksi vs Aktual</h4>
+        <p class="text-muted small">Perbandingan hasil prediksi model dengan label aktual pada data testing</p>
+    </div>
+    <a href="{% url 'ml_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Kembali
+    </a>
+</div>
+
+<!-- Kartu ringkasan -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card p-3 text-center border-0" style="background:#CCFBF1">
+            <div class="fw-bold fs-4" style="color:#0F766E">{{ total }}</div>
+            <div class="small" style="color:#0F766E">Total Data Test</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card p-3 text-center border-0" style="background:#EAF3DE">
+            <div class="fw-bold fs-4" style="color:#15803D">{{ benar }}</div>
+            <div class="small" style="color:#15803D">Prediksi Benar</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card p-3 text-center border-0" style="background:#FEF2F2">
+            <div class="fw-bold fs-4" style="color:#B91C1C">{{ salah }}</div>
+            <div class="small" style="color:#B91C1C">Prediksi Salah</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card p-3 text-center border-0" style="background:#EDE9FE">
+            <div class="fw-bold fs-4" style="color:#6D28D9">{{ akurasi|floatformat:2 }}%</div>
+            <div class="small" style="color:#6D28D9">Akurasi</div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter -->
+<div class="card mb-3 p-3">
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+        <span class="small fw-semibold text-muted me-1">Filter:</span>
+        <a href="?filter=semua" class="btn btn-sm {% if filter_status == 'semua' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+            Semua ({{ total }})
+        </a>
+        <a href="?filter=benar" class="btn btn-sm {% if filter_status == 'benar' %}btn-success{% else %}btn-outline-success{% endif %}">
+            <i class="bi bi-check-circle me-1"></i>Benar ({{ benar }})
+        </a>
+        <a href="?filter=salah" class="btn btn-sm {% if filter_status == 'salah' %}btn-danger{% else %}btn-outline-danger{% endif %}">
+            <i class="bi bi-x-circle me-1"></i>Salah ({{ salah }})
+        </a>
+    </div>
+</div>
+
+<!-- Tabel -->
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th class="ps-4">#</th>
+                    <th>Kode Balita</th>
+                    <th>JK</th>
+                    <th>Umur</th>
+                    <th>BB/U</th>
+                    <th>TB/U</th>
+                    <th>Status Gizi</th>
+                    <th>ASI</th>
+                    <th>Aktual</th>
+                    <th>Prediksi</th>
+                    <th>Prob. Tidak</th>
+                    <th>Prob. Potensi</th>
+                    <th>Prob. Stunting</th>
+                    <th>Hasil</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for h in page_obj %}
+            <tr class="{% if not h.cocok %}table-danger{% endif %}">
+                <td class="ps-4 text-muted small">{{ forloop.counter0|add:page_obj.start_index }}</td>
+                <td>
+                    <a href="{% url 'balita_detail' h.balita.pk %}" class="text-decoration-none fw-semibold small">
+                        {{ h.balita.kode_balita }}
+                    </a>
+                </td>
+                <td class="small">{{ h.balita.jenis_kelamin }}</td>
+                <td><span class="badge bg-light text-dark small">{{ h.balita.umur }}</span></td>
+                <td class="small">{{ h.balita.status_bbu }}</td>
+                <td class="small">{{ h.balita.status_tbu }}</td>
+                <td class="small">{{ h.balita.status_gizi }}</td>
+                <td>
+                    <span class="badge {% if h.balita.status_asi == 'Ya' %}bg-success bg-opacity-10 text-success{% else %}bg-secondary bg-opacity-10 text-secondary{% endif %}">
+                        {{ h.balita.status_asi }}
+                    </span>
+                </td>
+                <!-- Aktual -->
+                <td>
+                    <span class="badge {% if h.aktual == 'Stunting' %}bg-danger{% elif h.aktual == 'Potensi Stunting' %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                        {{ h.aktual }}
+                    </span>
+                </td>
+                <!-- Prediksi -->
+                <td>
+                    <span class="badge {% if h.prediksi == 'Stunting' %}bg-danger{% elif h.prediksi == 'Potensi Stunting' %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                        {{ h.prediksi }}
+                    </span>
+                </td>
+                <td class="small">{{ h.prob_tidak|floatformat:4 }}</td>
+                <td class="small">{{ h.prob_potensi|floatformat:4 }}</td>
+                <td class="small">{{ h.prob_stunting|floatformat:4 }}</td>
+                <!-- Status benar/salah -->
+                <td>
+                    {% if h.cocok %}
+                    <span class="badge bg-success"><i class="bi bi-check-lg me-1"></i>Benar</span>
+                    {% else %}
+                    <span class="badge bg-danger"><i class="bi bi-x-lg me-1"></i>Salah</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="14" class="text-center py-5 text-muted">
+                    <i class="bi bi-inbox fs-1 d-block mb-2"></i>Tidak ada data
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="card-footer bg-white d-flex justify-content-between align-items-center py-3 px-4">
+        <small class="text-muted">
+            Menampilkan {{ page_obj.start_index }}–{{ page_obj.end_index }} dari {{ page_obj.paginator.count }} data
+        </small>
+        <nav>
+            <ul class="pagination pagination-sm mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?filter={{ filter_status }}&page={{ page_obj.previous_page_number }}">‹</a>
+                </li>
+                {% endif %}
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?filter={{ filter_status }}&page={{ num }}">{{ num }}</a>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?filter={{ filter_status }}&page={{ page_obj.next_page_number }}">›</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

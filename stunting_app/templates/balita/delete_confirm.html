@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block title %}Hapus Data{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card p-5 text-center">
+            <i class="bi bi-exclamation-triangle-fill text-danger" style="font-size:3rem"></i>
+            <h4 class="fw-bold mt-3">Konfirmasi Hapus</h4>
+            <p class="text-muted">Apakah Anda yakin ingin menghapus data balita <strong>{{ balita.kode_balita }}</strong>? Tindakan ini tidak dapat dibatalkan.</p>
+            <div class="d-flex gap-3 justify-content-center mt-3">
+                <a href="{% url 'balita_list' %}" class="btn btn-outline-secondary px-4">Batal</a>
+                <form method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger px-4"><i class="bi bi-trash me-1"></i>Hapus</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,254 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Dashboard</li>{% endblock %}
+
+{% block content %}
+
+<!-- Page header -->
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h4 class="fw-800 mb-1" style="font-size:1.35rem;color:#1c2b27;font-weight:800">Dashboard</h4>
+        <p class="mb-0" style="font-size:.83rem;color:#6b8278">Ringkasan data balita dan deteksi stunting</p>
+    </div>
+    <a href="{% url 'prediksi' %}" class="btn btn-primary btn-sm d-flex align-items-center gap-2" style="border-radius:9px;padding:8px 16px">
+        <i class="bi bi-search-heart-fill"></i> Prediksi Baru
+    </a>
+</div>
+
+<!-- Stat Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-xl-3">
+        <div class="scard">
+            <div>
+                <div class="scard-label">Total Balita</div>
+                <div class="scard-num">{{ total_balita }}</div>
+                <div class="scard-sub">Data terdaftar</div>
+            </div>
+            <div class="scard-icon si-teal"><i class="bi bi-people-fill"></i></div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="scard">
+            <div>
+                <div class="scard-label">Data Training</div>
+                <div class="scard-num">{{ total_training }}</div>
+                <div class="scard-sub">Melatih model</div>
+            </div>
+            <div class="scard-icon si-green"><i class="bi bi-database-fill"></i></div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="scard">
+            <div>
+                <div class="scard-label">Data Testing</div>
+                <div class="scard-num">{{ total_testing }}</div>
+                <div class="scard-sub">Evaluasi model</div>
+            </div>
+            <div class="scard-icon si-amber"><i class="bi bi-clipboard-data-fill"></i></div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="scard">
+            <div>
+                <div class="scard-label">Total Prediksi</div>
+                <div class="scard-num">{{ total_prediksi }}</div>
+                <div class="scard-sub">Telah dilakukan</div>
+            </div>
+            <div class="scard-icon si-indigo"><i class="bi bi-search-heart-fill"></i></div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="row g-3 mb-4">
+    <!-- Donut chart -->
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header d-flex align-items-center gap-2">
+                <i class="bi bi-pie-chart-fill" style="color:var(--teal)"></i> Distribusi Stunting
+            </div>
+            <div class="p-4">
+                <div style="position:relative;height:200px"><canvas id="stuntingChart"></canvas></div>
+                <div id="donut-legend" class="d-flex justify-content-center gap-3 mt-3 flex-wrap"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bar chart -->
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header d-flex align-items-center gap-2">
+                <i class="bi bi-bar-chart-fill" style="color:#16a34a"></i> Jenis Kelamin
+            </div>
+            <div class="p-4">
+                <div style="position:relative;height:200px"><canvas id="jkChart"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Gizi bars -->
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header d-flex align-items-center gap-2">
+                <i class="bi bi-activity" style="color:#b45309"></i> Status Gizi
+            </div>
+            <div class="p-4">
+                {% for item in gizi_counts %}
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1" style="font-size:.78rem">
+                        <span style="font-weight:600;color:#1c2b27">{{ item.status_gizi }}</span>
+                        <span style="font-weight:700;color:var(--teal)">{{ item.jumlah }}</span>
+                    </div>
+                    <div style="background:#e9f0ee;border-radius:4px;height:7px;overflow:hidden">
+                        <div style="background:var(--teal);height:100%;border-radius:4px;width:{{ item.jumlah }}%;transition:width .6s ease"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent tables -->
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="d-flex align-items-center gap-2">
+                    <i class="bi bi-clock-history" style="color:var(--teal)"></i> Data Balita Terbaru
+                </span>
+                <a href="{% url 'balita_list' %}" class="btn btn-outline-primary btn-sm" style="border-radius:7px;font-size:.75rem;padding:4px 12px">
+                    Lihat Semua
+                </a>
+            </div>
+            <div class="table-responsive">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Kode</th><th>JK</th><th>Umur</th><th>Status Gizi</th><th>Stunting</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for b in recent_balita %}
+                    <tr onclick="window.location='{% url 'balita_detail' b.pk %}'" style="cursor:pointer">
+                        <td style="font-weight:700;color:var(--teal)">{{ b.kode_balita }}</td>
+                        <td>{{ b.get_jenis_kelamin_display }}</td>
+                        <td><span style="background:#f0fdf4;color:#15803d;border-radius:5px;padding:2px 8px;font-size:.73rem;font-weight:700">{{ b.umur }}</span></td>
+                        <td>{{ b.status_gizi }}</td>
+                        <td>
+                            {% if b.status_stunting %}
+                                {% if b.status_stunting == 'Stunting' %}
+                                    <span class="bs-red">{{ b.status_stunting }}</span>
+                                {% elif b.status_stunting == 'Potensi Stunting' %}
+                                    <span class="bs-amber">{{ b.status_stunting }}</span>
+                                {% else %}
+                                    <span class="bs-green">{{ b.status_stunting }}</span>
+                                {% endif %}
+                            {% else %}<span style="color:#b0bcb8">—</span>{% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="text-center py-4" style="color:#b0bcb8">Belum ada data</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="d-flex align-items-center gap-2">
+                    <i class="bi bi-search-heart-fill" style="color:var(--teal)"></i> Riwayat Prediksi
+                </span>
+                <a href="{% url 'prediksi_list' %}" class="btn btn-outline-primary btn-sm" style="border-radius:7px;font-size:.75rem;padding:4px 12px">
+                    Lihat Semua
+                </a>
+            </div>
+            <div class="table-responsive">
+                <table class="table mb-0">
+                    <thead>
+                        <tr><th>Hasil Prediksi</th><th>Tanggal</th><th>Oleh</th></tr>
+                    </thead>
+                    <tbody>
+                    {% for p in recent_prediksi %}
+                    <tr>
+                        <td>
+                            {% if p.hasil_prediksi == 'Stunting' %}
+                                <span class="bs-red">{{ p.hasil_prediksi }}</span>
+                            {% elif p.hasil_prediksi == 'Potensi Stunting' %}
+                                <span class="bs-amber">{{ p.hasil_prediksi }}</span>
+                            {% else %}
+                                <span class="bs-green">{{ p.hasil_prediksi }}</span>
+                            {% endif %}
+                        </td>
+                        <td style="color:#6b8278;font-size:.78rem">{{ p.predicted_at|date:"d/m/Y H:i" }}</td>
+                        <td style="font-size:.78rem;font-weight:600">{{ p.predicted_by.username|default:"—" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="3" class="text-center py-4" style="color:#b0bcb8">Belum ada prediksi</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const sd = {{ stunting_data|safe }};
+const jk = {{ jk_data|safe }};
+
+/* Donut */
+const donutColors = ['#0d9488','#f59e0b','#ef4444'];
+const donutLabels = ['Tidak Stunting','Potensi Stunting','Stunting'];
+const donutData   = [sd['Tidak']||0, sd['Potensi Stunting']||0, sd['Stunting']||0];
+
+new Chart(document.getElementById('stuntingChart'), {
+    type: 'doughnut',
+    data: {
+        labels: donutLabels,
+        datasets: [{ data: donutData, backgroundColor: donutColors, borderWidth: 0, hoverOffset: 6 }]
+    },
+    options: {
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ' ' + ctx.label + ': ' + ctx.parsed } } },
+        cutout: '68%', responsive: true, maintainAspectRatio: false
+    }
+});
+
+/* Custom legend */
+const legend = document.getElementById('donut-legend');
+donutLabels.forEach((l,i) => {
+    const total = donutData.reduce((a,b)=>a+b,0);
+    const pct = total ? Math.round(donutData[i]/total*100) : 0;
+    legend.innerHTML += `<span style="display:flex;align-items:center;gap:5px;font-size:.75rem;font-weight:700;color:#1c2b27">
+        <span style="width:10px;height:10px;border-radius:3px;background:${donutColors[i]};display:inline-block"></span>
+        ${l} <span style="color:#6b8278;font-weight:400">${pct}%</span></span>`;
+});
+
+/* Bar — gender */
+new Chart(document.getElementById('jkChart'), {
+    type: 'bar',
+    data: {
+        labels: ['Laki-laki','Perempuan'],
+        datasets: [{
+            data: [jk['L']||0, jk['P']||0],
+            backgroundColor: ['#0d9488','#5eead4'],
+            borderRadius: 8, borderWidth: 0
+        }]
+    },
+    options: {
+        plugins: { legend: { display: false } },
+        scales: {
+            y: { beginAtZero: true, grid: { color: '#f0f4f2' }, ticks: { font: { family: 'Nunito', size: 11 } } },
+            x: { grid: { display: false }, ticks: { font: { family: 'Nunito', size: 12, weight: '700' } } }
+        },
+        responsive: true, maintainAspectRatio: false
+    }
+});
+</script>
+{% endblock %}

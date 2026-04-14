@@ -1,0 +1,501 @@
+{% extends 'base.html' %}
+{% block title %}Kelola Dataset{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'balita_list' %}">Data Balita</a></li>
+<li class="breadcrumb-item active">Kelola Dataset</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.ds-card {
+    background:#fff; border:1px solid var(--border);
+    border-radius:14px; overflow:hidden;
+}
+.ds-head {
+    padding:14px 20px;
+    border-bottom:1px solid var(--border);
+    display:flex; align-items:center; gap:8px;
+    font-weight:700; font-size:.9rem; color:var(--text);
+}
+.ds-body { padding:20px; }
+
+/* Upload zone */
+.upload-zone {
+    border:2px dashed var(--border);
+    border-radius:10px;
+    padding:28px 20px;
+    text-align:center;
+    cursor:pointer;
+    transition:border-color .2s, background .2s;
+    position:relative;
+}
+.upload-zone:hover, .upload-zone.drag  {
+    border-color:var(--teal);
+    background:#f0fdfa;
+}
+.upload-zone input[type=file] {
+    position:absolute; inset:0; opacity:0; cursor:pointer; width:100%;
+}
+.upload-zone .uz-icon {
+    font-size:2rem; color:var(--teal); margin-bottom:8px; display:block;
+}
+.upload-zone .uz-label {
+    font-size:.86rem; font-weight:700; color:var(--text); margin-bottom:4px;
+}
+.upload-zone .uz-sub { font-size:.76rem; color:var(--muted); }
+.upload-zone .uz-file {
+    font-size:.82rem; font-weight:700; color:var(--teal);
+    margin-top:8px; display:none;
+}
+
+/* Danger zone */
+.danger-zone {
+    border:1px solid #fecaca;
+    border-radius:10px; padding:16px 20px;
+    background:#fef2f2;
+}
+.danger-zone .dz-title {
+    font-size:.82rem; font-weight:800; color:#b91c1c;
+    text-transform:uppercase; letter-spacing:.06em; margin-bottom:10px;
+    display:flex; align-items:center; gap:6px;
+}
+.btn-danger-soft {
+    background:#fef2f2; color:#b91c1c;
+    border:1.5px solid #fecaca; border-radius:8px;
+    padding:8px 16px; font-family:'Nunito',sans-serif;
+    font-size:.82rem; font-weight:700; cursor:pointer;
+    display:inline-flex; align-items:center; gap:6px;
+    transition:background .15s;
+}
+.btn-danger-soft:hover { background:#fee2e2; }
+.btn-danger-red {
+    background:#ef4444; color:#fff;
+    border:none; border-radius:8px;
+    padding:8px 16px; font-family:'Nunito',sans-serif;
+    font-size:.82rem; font-weight:700; cursor:pointer;
+    display:inline-flex; align-items:center; gap:6px;
+    transition:background .15s;
+}
+.btn-danger-red:hover { background:#dc2626; }
+
+/* Stat pill */
+.stat-pill {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:6px 14px; border-radius:20px;
+    font-size:.82rem; font-weight:700;
+}
+.sp-teal  { background:#ccfbf1; color:#0f766e; }
+.sp-amber { background:#fef3c7; color:#b45309; }
+.sp-red   { background:#fef2f2; color:#b91c1c; }
+
+.preset-btn {
+    background:#f4f7f5; border:1.5px solid var(--border);
+    border-radius:7px; padding:4px 10px;
+    font-family:'Nunito',sans-serif; font-size:.75rem; font-weight:700;
+    color:var(--muted); cursor:pointer; transition:all .15s;
+}
+.preset-btn:hover, .preset-btn.active {
+    background:var(--teal); border-color:var(--teal); color:#fff;
+}
+.modal-overlay {
+    display:none; position:fixed; inset:0;
+    background:rgba(0,0,0,.45); z-index:9999;
+    align-items:center; justify-content:center;
+}
+.modal-overlay.show { display:flex; }
+.modal-box {
+    background:#fff; border-radius:16px;
+    padding:28px; max-width:400px; width:90%;
+    box-shadow:0 20px 60px rgba(0,0,0,.2);
+}
+.modal-icon { font-size:2.5rem; text-align:center; margin-bottom:12px; }
+.modal-title { font-size:1.1rem; font-weight:800; color:var(--text); text-align:center; margin-bottom:8px; }
+.modal-sub { font-size:.86rem; color:var(--muted); text-align:center; margin-bottom:20px; line-height:1.6; }
+.modal-actions { display:flex; gap:10px; }
+.modal-actions button { flex:1; padding:10px; border-radius:9px; font-family:'Nunito',sans-serif; font-weight:700; font-size:.88rem; cursor:pointer; }
+.modal-cancel { background:#f4f7f5; border:1px solid var(--border); color:var(--muted); }
+.modal-cancel:hover { background:#e9f0ee; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h4 style="font-size:1.35rem;color:#1c2b27;font-weight:800;margin-bottom:4px">Kelola Dataset</h4>
+        <p class="mb-0" style="font-size:.83rem;color:#6b8278">Upload data baru atau hapus dataset training & testing</p>
+    </div>
+    <a href="{% url 'balita_list' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Kembali
+    </a>
+</div>
+
+<!-- Stat cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-4">
+        <div class="scard">
+            <div>
+                <div class="scard-label">Data Training</div>
+                <div class="scard-num">{{ training_count }}</div>
+                <div class="scard-sub">Untuk melatih model</div>
+            </div>
+            <div class="scard-icon si-teal"><i class="bi bi-database-fill"></i></div>
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="scard">
+            <div>
+                <div class="scard-label">Data Testing</div>
+                <div class="scard-num">{{ testing_count }}</div>
+                <div class="scard-sub">Untuk evaluasi model</div>
+            </div>
+            <div class="scard-icon si-amber"><i class="bi bi-clipboard-data-fill"></i></div>
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="scard">
+            <div>
+                <div class="scard-label">Total Data</div>
+                <div class="scard-num">{{ training_count|add:testing_count }}</div>
+                <div class="scard-sub">Semua data balita</div>
+            </div>
+            <div class="scard-icon si-indigo"><i class="bi bi-people-fill"></i></div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- ── AUTO SPLIT (full width, paling atas) ── -->
+    <div class="col-12">
+        <div class="ds-card" style="border:2px solid var(--teal)">
+            <div class="ds-head" style="background:#f0fdfa">
+                <i class="bi bi-scissors" style="color:var(--teal)"></i>
+                Upload & Auto-Split Dataset
+                <span class="stat-pill sp-teal ms-auto">⭐ Direkomendasikan</span>
+            </div>
+            <div class="ds-body">
+                <p style="font-size:.83rem;color:#6b8278;margin-bottom:16px;line-height:1.6">
+                    Upload <b>1 file Excel</b> berisi semua data, sistem akan otomatis membagi menjadi
+                    data training dan testing sesuai rasio yang dipilih.
+                    Data akan diacak (<i>shuffle</i>) sebelum dibagi agar distribusi merata.
+                </p>
+
+                <form method="post" action="{% url 'upload_split' %}" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="row g-3 align-items-start">
+                        <!-- Upload zone -->
+                        <div class="col-lg-5">
+                            <div class="upload-zone" id="zoneSplit">
+                                <input type="file" name="file" accept=".xlsx,.xls"
+                                       onchange="showFile(this,'zoneSplit','fileNameSplit')">
+                                <i class="bi bi-file-earmark-excel uz-icon"></i>
+                                <div class="uz-label">Klik atau seret file Excel ke sini</div>
+                                <div class="uz-sub">Satu file berisi semua data (training + testing)</div>
+                                <div class="uz-file" id="fileNameSplit"></div>
+                            </div>
+                        </div>
+
+                        <!-- Setting split -->
+                        <div class="col-lg-4">
+                            <label style="font-size:.78rem;font-weight:700;color:var(--text);display:block;margin-bottom:8px">
+                                Rasio Split
+                            </label>
+
+                            <!-- Slider -->
+                            <div style="margin-bottom:12px">
+                                <input type="range" id="splitSlider" name="split_ratio"
+                                       min="0.5" max="0.9" step="0.05" value="0.8"
+                                       style="width:100%;accent-color:var(--teal)"
+                                       oninput="updateSplit(this.value)">
+                                <div style="display:flex;justify-content:space-between;font-size:.7rem;color:var(--muted);margin-top:2px">
+                                    <span>50%</span><span>90%</span>
+                                </div>
+                            </div>
+
+                            <!-- Visualisasi rasio -->
+                            <div style="background:#f0f4f2;border-radius:8px;overflow:hidden;height:28px;margin-bottom:10px;display:flex">
+                                <div id="barTrain" style="background:var(--teal);height:100%;width:80%;transition:width .3s;display:flex;align-items:center;justify-content:center">
+                                    <span id="lblTrain" style="font-size:.72rem;font-weight:800;color:#fff">80% Training</span>
+                                </div>
+                                <div id="barTest" style="background:#f59e0b;height:100%;width:20%;transition:width .3s;display:flex;align-items:center;justify-content:center">
+                                    <span id="lblTest" style="font-size:.72rem;font-weight:800;color:#fff">20%</span>
+                                </div>
+                            </div>
+
+                            <!-- Preset buttons -->
+                            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
+                                <button type="button" class="preset-btn active" onclick="setPreset(0.7,this)">70/30</button>
+                                <button type="button" class="preset-btn" onclick="setPreset(0.75,this)">75/25</button>
+                                <button type="button" class="preset-btn active" onclick="setPreset(0.8,this)">80/20 ✓</button>
+                                <button type="button" class="preset-btn" onclick="setPreset(0.85,this)">85/15</button>
+                                <button type="button" class="preset-btn" onclick="setPreset(0.9,this)">90/10</button>
+                            </div>
+
+                            <!-- Estimasi jumlah dari data sebelumnya -->
+                            <div id="estimasiBox" style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:10px 12px;font-size:.78rem;color:#0f766e;display:none">
+                                <b>Estimasi pembagian:</b><br>
+                                Training: <span id="estTrain">—</span> data &nbsp;|&nbsp;
+                                Testing:  <span id="estTest">—</span> data
+                            </div>
+                        </div>
+
+                        <!-- Options + submit -->
+                        <div class="col-lg-3">
+                            <label style="font-size:.78rem;font-weight:700;color:var(--text);display:block;margin-bottom:8px">
+                                Opsi
+                            </label>
+                            <div class="d-flex flex-column gap-2 mb-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <input type="checkbox" name="shuffle" value="1" id="chkShuffle"
+                                           class="form-check-input mt-0" checked>
+                                    <label for="chkShuffle" style="font-size:.81rem;font-weight:600;color:var(--text);cursor:pointer">
+                                        Acak data sebelum split
+                                    </label>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <input type="checkbox" name="replace_all" value="1" id="chkReplace"
+                                           class="form-check-input mt-0" checked>
+                                    <label for="chkReplace" style="font-size:.81rem;font-weight:600;color:var(--text);cursor:pointer">
+                                        Hapus data lama sebelum upload
+                                    </label>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100"
+                                    style="border-radius:9px;font-weight:700;padding:10px">
+                                <i class="bi bi-scissors me-2"></i>Upload & Split Otomatis
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── UPLOAD MANUAL (training & testing terpisah) ── -->
+    <div class="col-lg-6">
+        <div class="ds-card">
+            <div class="ds-head">
+                <i class="bi bi-database-fill-up" style="color:var(--teal)"></i>
+                Upload Data Training
+                <span class="stat-pill sp-teal ms-auto">{{ training_count }} data</span>
+            </div>
+            <div class="ds-body">
+                <p style="font-size:.82rem;color:#6b8278;margin-bottom:16px">
+                    Upload file Excel data training. Format kolom: <b>Nama/Kode balita, JK, Umur, Berat, Tinggi, BB/U, TB/U, Status Gizi, Status ASI Ekslusif, Status Stunting</b>.
+                </p>
+
+                <form method="post" action="{% url 'upload_dataset' %}" enctype="multipart/form-data" id="formTraining">
+                    {% csrf_token %}
+                    <input type="hidden" name="dataset_type" value="training">
+
+                    <div class="upload-zone mb-3" id="zoneTraining">
+                        <input type="file" name="file" accept=".xlsx,.xls"
+                               onchange="showFile(this,'zoneTraining','fileNameTraining')">
+                        <i class="bi bi-file-earmark-excel uz-icon"></i>
+                        <div class="uz-label">Klik atau seret file Excel ke sini</div>
+                        <div class="uz-sub">.xlsx / .xls — Data_Training_Final.xlsx</div>
+                        <div class="uz-file" id="fileNameTraining"></div>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <input type="checkbox" name="replace_all" value="1"
+                               id="replaceTraining" class="form-check-input mt-0" checked>
+                        <label for="replaceTraining" style="font-size:.82rem;font-weight:600;color:var(--text);cursor:pointer">
+                            Hapus data training lama sebelum upload
+                        </label>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100" style="border-radius:9px;font-weight:700">
+                        <i class="bi bi-cloud-upload-fill me-2"></i>Upload Data Training
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── UPLOAD TESTING ── -->
+    <div class="col-lg-6">
+        <div class="ds-card">
+            <div class="ds-head">
+                <i class="bi bi-clipboard-data-fill" style="color:#b45309"></i>
+                Upload Data Testing
+                <span class="stat-pill sp-amber ms-auto">{{ testing_count }} data</span>
+            </div>
+            <div class="ds-body">
+                <p style="font-size:.82rem;color:#6b8278;margin-bottom:16px">
+                    Upload file Excel data testing. Gunakan format kolom yang sama dengan data training.
+                </p>
+
+                <form method="post" action="{% url 'upload_dataset' %}" enctype="multipart/form-data" id="formTesting">
+                    {% csrf_token %}
+                    <input type="hidden" name="dataset_type" value="testing">
+
+                    <div class="upload-zone mb-3" id="zoneTesting">
+                        <input type="file" name="file" accept=".xlsx,.xls"
+                               onchange="showFile(this,'zoneTesting','fileNameTesting')">
+                        <i class="bi bi-file-earmark-excel uz-icon"></i>
+                        <div class="uz-label">Klik atau seret file Excel ke sini</div>
+                        <div class="uz-sub">.xlsx / .xls — Data_Test_Final.xlsx</div>
+                        <div class="uz-file" id="fileNameTesting"></div>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <input type="checkbox" name="replace_all" value="1"
+                               id="replaceTesting" class="form-check-input mt-0" checked>
+                        <label for="replaceTesting" style="font-size:.82rem;font-weight:600;color:var(--text);cursor:pointer">
+                            Hapus data testing lama sebelum upload
+                        </label>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100" style="border-radius:9px;font-weight:700;background:#b45309;border-color:#b45309">
+                        <i class="bi bi-cloud-upload-fill me-2"></i>Upload Data Testing
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── HAPUS DATA ── -->
+    <div class="col-12">
+        <div class="ds-card">
+            <div class="ds-head">
+                <i class="bi bi-trash3-fill" style="color:#b91c1c"></i>
+                Hapus Dataset
+            </div>
+            <div class="ds-body">
+                <div class="danger-zone">
+                    <div class="dz-title">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                        Zona Berbahaya — Tindakan Tidak Dapat Dibatalkan
+                    </div>
+                    <p style="font-size:.82rem;color:#991b1b;margin-bottom:16px;line-height:1.6">
+                        Hapus data secara permanen dari database. Pastikan sudah memiliki backup sebelum melanjutkan.
+                        Data yang dihapus <strong>tidak dapat dipulihkan</strong>.
+                    </p>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button class="btn-danger-soft"
+                                onclick="confirmDelete('training','{{ training_count }}')">
+                            <i class="bi bi-database-fill-dash"></i>
+                            Hapus Data Training ({{ training_count }})
+                        </button>
+                        <button class="btn-danger-soft"
+                                onclick="confirmDelete('testing','{{ testing_count }}')">
+                            <i class="bi bi-clipboard-x-fill"></i>
+                            Hapus Data Testing ({{ testing_count }})
+                        </button>
+                        <button class="btn-danger-red"
+                                onclick="confirmDelete('semua','{{ training_count|add:testing_count }}')">
+                            <i class="bi bi-trash3-fill"></i>
+                            Hapus Semua Data ({{ training_count|add:testing_count }})
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Modal Konfirmasi Hapus ── -->
+<div class="modal-overlay" id="deleteModal">
+    <div class="modal-box">
+        <div class="modal-icon">🗑️</div>
+        <div class="modal-title" id="modalTitle">Hapus Data?</div>
+        <div class="modal-sub" id="modalSub">Apakah Anda yakin ingin menghapus data ini?</div>
+        <div class="modal-actions">
+            <button class="modal-cancel" onclick="closeModal()">Batal</button>
+            <form method="post" action="{% url 'hapus_dataset' %}" style="flex:1">
+                {% csrf_token %}
+                <input type="hidden" name="dataset_type" id="modalDtype">
+                <button type="submit" class="btn-danger-red w-100" style="border-radius:9px">
+                    <i class="bi bi-trash3-fill"></i> Ya, Hapus
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Auto-split slider ──────────────────────────────────────────────
+function updateSplit(val) {
+    val = parseFloat(val);
+    const pTrain = Math.round(val * 100);
+    const pTest  = 100 - pTrain;
+    document.getElementById('barTrain').style.width = pTrain + '%';
+    document.getElementById('barTest').style.width  = pTest  + '%';
+    document.getElementById('lblTrain').textContent = pTrain + '% Training';
+    document.getElementById('lblTest').textContent  = pTest  + '%';
+
+    // Estimasi jika ada total
+    const total = {{ training_count|add:testing_count }};
+    if (total > 0) {
+        const eT = Math.round(total * val);
+        const eX = total - eT;
+        document.getElementById('estTrain').textContent = eT;
+        document.getElementById('estTest').textContent  = eX;
+        document.getElementById('estimasiBox').style.display = 'block';
+    }
+
+    // Update preset active state
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    const map = {0.7:'70/30',0.75:'75/25',0.8:'80/20 ✓',0.85:'85/15',0.9:'90/10'};
+    document.querySelectorAll('.preset-btn').forEach(b => {
+        if (b.textContent.includes(map[val] || '')) b.classList.add('active');
+    });
+}
+
+function setPreset(val, btn) {
+    document.getElementById('splitSlider').value = val;
+    updateSplit(val);
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}
+
+// Init
+updateSplit(0.8);
+
+function showFile(input, zoneId, labelId) {
+    const zone  = document.getElementById(zoneId);
+    const label = document.getElementById(labelId);
+    if (input.files && input.files[0]) {
+        label.textContent = '✓ ' + input.files[0].name;
+        label.style.display = 'block';
+        zone.style.borderColor = 'var(--teal)';
+        zone.style.background  = '#f0fdfa';
+    }
+}
+
+// Drag & drop visual
+['zoneTraining','zoneTesting'].forEach(id => {
+    const z = document.getElementById(id);
+    z.addEventListener('dragover',  e => { e.preventDefault(); z.classList.add('drag'); });
+    z.addEventListener('dragleave', ()  => z.classList.remove('drag'));
+    z.addEventListener('drop',      e  => z.classList.remove('drag'));
+});
+
+const labels = {
+    training: 'Data Training',
+    testing:  'Data Testing',
+    semua:    'Semua Data',
+};
+
+function confirmDelete(dtype, count) {
+    document.getElementById('modalTitle').textContent =
+        `Hapus ${labels[dtype]}?`;
+    document.getElementById('modalSub').textContent =
+        `Anda akan menghapus ${count} data ${labels[dtype].toLowerCase()} secara permanen. ` +
+        `Tindakan ini tidak dapat dibatalkan.`;
+    document.getElementById('modalDtype').value = dtype;
+    document.getElementById('deleteModal').classList.add('show');
+}
+
+function closeModal() {
+    document.getElementById('deleteModal').classList.remove('show');
+}
+
+// Tutup modal jika klik di luar
+document.getElementById('deleteModal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+});
+</script>
+{% endblock %}

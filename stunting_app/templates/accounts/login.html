@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — StuntingApp</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --teal:   #0d9488;
+            --teal-d: #0f766e;
+            --teal-l: #ccfbf1;
+            --cream:  #fafaf9;
+            --border: #e2e8e4;
+            --text:   #1c2b27;
+            --muted:  #6b8278;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: var(--cream);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: radial-gradient(circle, #c8d6d0 1px, transparent 1px);
+            background-size: 28px 28px;
+            opacity: .45;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .login-wrapper {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 880px;
+        }
+        .login-card {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            overflow: hidden;
+            display: flex;
+        }
+        /* LEFT */
+        .panel-left {
+            width: 42%;
+            background-color: var(--teal);
+            padding: 3rem 2.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+        .panel-left::before, .panel-left::after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,.12);
+        }
+        .panel-left::before { width: 320px; height: 320px; bottom: -80px; right: -80px; }
+        .panel-left::after  { width: 180px; height: 180px; bottom: -20px; right: -20px; }
+        .app-logo { display: flex; align-items: center; gap: 12px; }
+        .logo-icon {
+            width: 48px; height: 48px;
+            background: rgba(255,255,255,.18);
+            border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem; color: #fff; flex-shrink: 0;
+        }
+        .app-name  { color: #fff; font-size: 1.35rem; font-weight: 800; line-height: 1.2; }
+        .app-tagline { color: rgba(255,255,255,.7); font-size: .8rem; }
+        .panel-headline { color: #fff; font-size: 1.6rem; font-weight: 800; line-height: 1.35; margin: 2rem 0 .75rem; }
+        .panel-sub { color: rgba(255,255,255,.72); font-size: .88rem; line-height: 1.65; }
+        .feature-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+        .feature-list li { display: flex; align-items: center; gap: 10px; color: rgba(255,255,255,.85); font-size: .83rem; font-weight: 600; }
+        .feature-list li .dot { width: 8px; height: 8px; background: rgba(255,255,255,.5); border-radius: 50%; flex-shrink: 0; }
+        /* RIGHT */
+        .panel-right { flex: 1; padding: 3rem 2.75rem; display: flex; flex-direction: column; justify-content: center; }
+        .greet-label { font-size: .75rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--teal); margin-bottom: .5rem; }
+        .greet-title { font-size: 1.65rem; font-weight: 800; color: var(--text); margin-bottom: .35rem; }
+        .greet-sub { color: var(--muted); font-size: .88rem; margin-bottom: 2rem; }
+        /* Form */
+        .field-wrap { margin-bottom: 1.25rem; }
+        .field-label { display: block; font-size: .8rem; font-weight: 700; color: var(--text); margin-bottom: .4rem; }
+        .field-inner {
+            display: flex; align-items: center;
+            border: 1.5px solid var(--border);
+            border-radius: 10px; overflow: hidden;
+            transition: border-color .2s; background: #fff;
+        }
+        .field-inner:focus-within { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(13,148,136,.1); }
+        .field-icon { padding: 0 13px; color: var(--muted); font-size: 1rem; flex-shrink: 0; }
+        .field-inner input {
+            flex: 1; border: none; outline: none;
+            padding: 10px 12px 10px 0;
+            font-family: 'Nunito', sans-serif;
+            font-size: .9rem; color: var(--text); background: transparent;
+        }
+        .field-inner input::placeholder { color: #b2bfba; }
+        .btn-masuk {
+            width: 100%; background: var(--teal); color: #fff;
+            border: none; border-radius: 10px; padding: 11px;
+            font-family: 'Nunito', sans-serif; font-size: .95rem; font-weight: 700;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            gap: 8px; transition: background .2s, transform .1s; margin-top: .25rem;
+        }
+        .btn-masuk:hover  { background: var(--teal-d); }
+        .btn-masuk:active { transform: scale(.985); }
+        .register-link { text-align: center; margin-top: 1.25rem; font-size: .85rem; color: var(--muted); }
+        .register-link a { color: var(--teal); font-weight: 700; text-decoration: none; }
+        .register-link a:hover { text-decoration: underline; }
+        .cred-box { margin-top: 1.5rem; border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; background: var(--cream); }
+        .cred-head { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 6px; }
+        .cred-row { display: flex; justify-content: space-between; font-size: .8rem; color: var(--text); padding: 3px 0; }
+        .cred-row span:first-child { color: var(--muted); }
+        .cred-row code { font-family: monospace; background: #e8f5f3; color: var(--teal-d); padding: 1px 6px; border-radius: 4px; font-size: .78rem; }
+        .alert-login { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; border-radius: 10px; padding: 10px 14px; font-size: .85rem; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 8px; }
+        .alert-success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; border-radius: 10px; padding: 12px 14px; font-size: .85rem; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 8px; font-weight: 600; }
+        @media (max-width: 660px) {
+            .panel-left { display: none; }
+            .panel-right { padding: 2.5rem 1.75rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="login-wrapper">
+    <div class="login-card">
+
+        <!-- LEFT -->
+        <div class="panel-left">
+            <div class="app-logo">
+                <div class="logo-icon"><i class="bi bi-heart-pulse-fill"></i></div>
+                <div>
+                    <div class="app-name">StuntingApp</div>
+                    <div class="app-tagline">Deteksi Stunting Balita</div>
+                </div>
+            </div>
+            <div>
+                <div class="panel-headline">Deteksi dini,<br>tumbuh optimal.</div>
+                <p class="panel-sub">Sistem klasifikasi stunting berbasis Machine Learning Naive Bayes untuk membantu pemantauan gizi balita secara akurat.</p>
+            </div>
+
+        </div>
+
+        <!-- RIGHT -->
+        <div class="panel-right">
+            <div class="greet-label">Selamat datang</div>
+            <div class="greet-title">Masuk ke Akun</div>
+            <p class="greet-sub">Silakan masukkan username dan password Anda.</p>
+
+            {% for message in messages %}
+            {% if message.tags == 'success' %}
+            <div class="alert-success">
+                <i class="bi bi-check-circle-fill"></i>
+                {{ message }}
+            </div>
+            {% else %}
+            <div class="alert-login">
+                <i class="bi bi-exclamation-circle-fill"></i>
+                {{ message }}
+            </div>
+            {% endif %}
+            {% endfor %}
+
+            <form method="post" novalidate>
+                {% csrf_token %}
+                <div class="field-wrap">
+                    <label class="field-label" for="id_username">Username</label>
+                    <div class="field-inner">
+                        <span class="field-icon"><i class="bi bi-person"></i></span>
+                        <input type="text" id="id_username" name="username"
+                               placeholder="Masukkan username" autocomplete="username">
+                    </div>
+                </div>
+                <div class="field-wrap">
+                    <label class="field-label" for="id_password">Password</label>
+                    <div class="field-inner">
+                        <span class="field-icon"><i class="bi bi-lock"></i></span>
+                        <input type="password" id="id_password" name="password"
+                               placeholder="Masukkan password" autocomplete="current-password">
+                    </div>
+                </div>
+                <button type="submit" class="btn-masuk">
+                    <i class="bi bi-box-arrow-in-right"></i> Masuk
+                </button>
+            </form>
+
+            <div class="register-link">
+                Belum punya akun? <a href="{% url 'register' %}">Daftar sekarang</a>
+            </div>
+            <div class="register-link" style="margin-top:.6rem">
+                Lupa password? <a href="{% url 'forgot_password' %}">Reset di sini</a>
+            </div>
+
+
+        </div>
+
+    </div>
+</div>
+</body>
+</html>

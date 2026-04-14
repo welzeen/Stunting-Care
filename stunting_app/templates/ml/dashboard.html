@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+{% block title %}ML Dashboard{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Machine Learning</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">Machine Learning Dashboard</h4>
+        <p class="text-muted small">Naive Bayes — Klasifikasi Status Stunting Balita</p>
+    </div>
+    {% if user.profile.is_admin %}
+    <div class="d-flex gap-2">
+        <form method="post" action="{% url 'train_model' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary btn-sm" onclick="return confirm('Latih ulang model dengan data saat ini?')">
+                <i class="bi bi-play-fill me-1"></i>Latih Model
+            </button>
+        </form>
+        <form method="post" action="{% url 'batch_predict' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-secondary btn-sm" onclick="return confirm('Jalankan prediksi untuk semua data testing?')">
+                <i class="bi bi-lightning-fill me-1"></i>Batch Prediksi
+            </button>
+        </form>
+        {% if model_obj and model_obj.status == 'trained' %}
+        <a href="{% url 'evaluasi_data' %}" class="btn btn-outline-info btn-sm">
+            <i class="bi bi-table me-1"></i>Lihat Prediksi vs Aktual
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Status Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="card p-4">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="text-muted small fw-semibold mb-1">Status Model</div>
+                    {% if model_obj and model_obj.status == 'trained' and model_obj.jumlah_training > 0 %}
+                    <span class="badge bg-success fs-6">✓ Terlatih</span>
+                    {% else %}
+                    <span class="badge bg-secondary fs-6">Belum Dilatih</span>
+                    {% endif %}
+                </div>
+                <div class="icon-box bg-primary bg-opacity-10 text-primary"><i class="bi bi-cpu-fill"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card p-4">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="text-muted small fw-semibold mb-1">Data Training</div>
+                    <div class="fw-bold" style="font-size:1.8rem">{{ training_count }}</div>
+                    <div class="small text-muted">tersedia untuk melatih</div>
+                </div>
+                <div class="icon-box bg-warning bg-opacity-10 text-warning"><i class="bi bi-database-fill"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card p-4">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="text-muted small fw-semibold mb-1">Data Testing</div>
+                    <div class="fw-bold" style="font-size:1.8rem">{{ testing_count }}</div>
+                    <div class="small text-muted">untuk evaluasi</div>
+                </div>
+                <div class="icon-box bg-info bg-opacity-10 text-info"><i class="bi bi-clipboard-data-fill"></i></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if model_obj and model_obj.status == 'trained' and model_obj.jumlah_training > 0 %}
+<!-- Model Details -->
+<div class="row g-3 mb-4">
+    <div class="col-12">
+        <div class="card p-4">
+            <h6 class="fw-bold mb-4 text-primary"><i class="bi bi-info-circle me-2"></i>Informasi Model</h6>
+            <table class="table table-sm">
+                <tbody>
+                    <tr><td class="text-muted">Nama Model</td><td class="fw-semibold">{{ model_obj.nama_model }}</td></tr>
+                    <tr><td class="text-muted">Algoritma</td><td class="fw-semibold">Categorical Naive Bayes</td></tr>
+                    <tr><td class="text-muted">Jumlah Fitur</td><td class="fw-semibold">6 Fitur (JK, Umur, BB/U, TB/U, Status Gizi, ASI)</td></tr>
+                    <tr><td class="text-muted">Jumlah Kelas</td><td class="fw-semibold">3 Kelas (Tidak / Potensi Stunting / Stunting)</td></tr>
+                    <tr><td class="text-muted">Data Training</td><td class="fw-semibold">{{ model_obj.jumlah_training }} sampel</td></tr>
+                    <tr><td class="text-muted">Data Testing</td><td class="fw-semibold">{{ model_obj.jumlah_testing }} sampel</td></tr>
+                    <tr><td class="text-muted">Dilatih Oleh</td><td class="fw-semibold">{{ model_obj.trained_by.username|default:"-" }}</td></tr>
+                    <tr><td class="text-muted">Tanggal Latih</td><td class="fw-semibold">{{ model_obj.trained_at|date:"d/m/Y H:i" }}</td></tr>
+                </tbody>
+            </table>
+            <div class="d-flex gap-2 mt-3">
+                <a href="{% url 'prediksi' %}" class="btn btn-primary btn-sm">
+                    <i class="bi bi-search-heart me-1"></i>Coba Prediksi
+                </a>
+                <a href="{% url 'korelasi' %}" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-grid-3x3-gap-fill me-1"></i>Analisis Korelasi
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="card p-5 text-center">
+    <i class="bi bi-cpu fs-1 text-muted d-block mb-3"></i>
+    <h5 class="fw-bold">Model Belum Dilatih</h5>
+    <p class="text-muted mb-4">Anda memiliki <strong>{{ training_count }}</strong> data training tersedia.<br>
+    Latih model Naive Bayes untuk mulai melakukan prediksi stunting.</p>
+    {% if user.profile.is_admin %}
+    <form method="post" action="{% url 'train_model' %}" class="d-inline">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary px-5">
+            <i class="bi bi-play-fill me-2"></i>Latih Model Sekarang
+        </button>
+    </form>
+    {% else %}
+    <p class="text-muted small">Hubungi admin untuk melatih model.</p>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Cara Kerja Naive Bayes -->
+<div class="card p-4 mt-3">
+    <h6 class="fw-bold mb-3 text-primary"><i class="bi bi-lightbulb me-2"></i>Cara Kerja Naive Bayes</h6>
+    <div class="row g-3">
+        <div class="col-md-3 text-center">
+            <div class="bg-primary bg-opacity-10 rounded-3 p-3 mb-2">
+                <i class="bi bi-database fs-2 text-primary"></i>
+            </div>
+            <div class="fw-semibold small">1. Input Data</div>
+            <div class="text-muted" style="font-size:.8rem">6 fitur: JK, Umur, BB/U, TB/U, Status Gizi, ASI</div>
+        </div>
+        <div class="col-md-3 text-center">
+            <div class="bg-warning bg-opacity-10 rounded-3 p-3 mb-2">
+                <i class="bi bi-calculator fs-2 text-warning"></i>
+            </div>
+            <div class="fw-semibold small">2. Hitung Prior</div>
+            <div class="text-muted" style="font-size:.8rem">P(Kelas) berdasarkan frekuensi data training</div>
+        </div>
+        <div class="col-md-3 text-center">
+            <div class="bg-success bg-opacity-10 rounded-3 p-3 mb-2">
+                <i class="bi bi-bar-chart fs-2 text-success"></i>
+            </div>
+            <div class="fw-semibold small">3. Hitung Likelihood</div>
+            <div class="text-muted" style="font-size:.8rem">P(Fitur|Kelas) untuk setiap atribut</div>
+        </div>
+        <div class="col-md-3 text-center">
+            <div class="bg-info bg-opacity-10 rounded-3 p-3 mb-2">
+                <i class="bi bi-check-circle fs-2 text-info"></i>
+            </div>
+            <div class="fw-semibold small">4. Posterior & Prediksi</div>
+            <div class="text-muted" style="font-size:.8rem">Pilih kelas dengan P(Kelas|Data) tertinggi</div>
+        </div>
+    </div>
+</div>
+{% endblock %}

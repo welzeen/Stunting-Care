@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+{% block title %}Data Balita{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Data Balita</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">Data Balita</h4>
+        <p class="text-muted small">Total {{ total }} data balita terdaftar</p>
+    </div>
+    <div class="d-flex gap-2">
+        {% if user.profile.is_admin %}
+        <a href="{% url 'balita_create' %}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg me-1"></i>Tambah Data
+        </a>
+        <a href="{% url 'import_excel' %}" class="btn btn-success btn-sm">
+            <i class="bi bi-upload me-1"></i>Import Excel
+        </a>
+        <a href="{% url 'kelola_dataset' %}" class="btn btn-sm" style="background:#e8f5f3;color:#0f766e;border:1px solid #ccfbf1;font-weight:700">
+            <i class="bi bi-database-fill-gear me-1"></i>Kelola Dataset
+        </a>
+        {% endif %}
+        <a href="{% url 'export_excel' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-download me-1"></i>Export Excel
+        </a>
+        <a href="{% url 'export_pdf_all_balita' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" class="btn btn-outline-danger btn-sm">
+            <i class="bi bi-file-earmark-pdf me-1"></i>Download PDF
+        </a>
+    </div>
+</div>
+
+<!-- Filter -->
+<div class="card mb-4 p-3">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-md-4">
+            <label class="form-label small fw-semibold">Cari</label>
+            {{ form.search }}
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small fw-semibold">Jenis Kelamin</label>
+            {{ form.jenis_kelamin }}
+        </div>
+        <div class="col-md-3">
+            <label class="form-label small fw-semibold">Status Stunting</label>
+            {{ form.status_stunting }}
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small fw-semibold">Dataset</label>
+            {{ form.dataset_type }}
+        </div>
+        <div class="col-md-1">
+            <button type="submit" class="btn btn-primary btn-sm w-100"><i class="bi bi-search"></i></button>
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th class="ps-4" style="width:50px">#</th>
+                    <th>Kode Balita</th>
+                    <th>JK</th>
+                    <th>Umur</th>
+                    <th>Berat/Tinggi</th>
+                    <th>BB/U</th>
+                    <th>TB/U</th>
+                    <th>Status Gizi</th>
+                    <th>ASI</th>
+                    <th>Status Stunting</th>
+                    <th>Dataset</th>
+                    <th class="text-center">Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for b in page_obj %}
+            <tr>
+                <td class="ps-4 text-muted small">{{ forloop.counter0|add:page_obj.start_index }}</td>
+                <td class="fw-semibold">
+                    <a href="{% url 'balita_detail' b.pk %}" class="text-decoration-none">{{ b.kode_balita }}</a>
+                    {% if b.nama_balita %}<div class="text-muted" style="font-size:.75rem">{{ b.nama_balita }}</div>{% endif %}
+                </td>
+                <td>
+                    {% if b.jenis_kelamin == 'L' %}
+                    <span class="badge bg-primary bg-opacity-10 text-primary">♂ L</span>
+                    {% else %}
+                    <span class="badge bg-pink bg-opacity-10 text-danger">♀ P</span>
+                    {% endif %}
+                </td>
+                <td><span class="badge bg-light text-dark small">{{ b.umur }}</span></td>
+                <td class="small">{{ b.berat_badan }}kg / {{ b.tinggi_badan }}cm</td>
+                <td class="small">{{ b.status_bbu }}</td>
+                <td class="small">{{ b.status_tbu }}</td>
+                <td class="small">{{ b.status_gizi }}</td>
+                <td>
+                    <span class="badge {% if b.status_asi == 'Ya' %}bg-success{% else %}bg-danger{% endif %} bg-opacity-10 {% if b.status_asi == 'Ya' %}text-success{% else %}text-danger{% endif %}">
+                        {{ b.status_asi }}
+                    </span>
+                </td>
+                <td>
+                    {% if b.status_stunting %}
+                    <span class="badge {% if b.status_stunting == 'Stunting' %}bg-danger{% elif b.status_stunting == 'Potensi Stunting' %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                        {{ b.status_stunting }}
+                    </span>
+                    {% else %}<span class="text-muted small">-</span>{% endif %}
+                </td>
+                <td><span class="badge {% if b.dataset_type == 'training' %}bg-info{% else %}bg-secondary{% endif %} bg-opacity-10 {% if b.dataset_type == 'training' %}text-info{% else %}text-secondary{% endif %}">{{ b.dataset_type }}</span></td>
+                <td class="text-center">
+                    <a href="{% url 'balita_detail' b.pk %}" class="btn btn-sm btn-light" title="Detail"><i class="bi bi-eye"></i></a>
+                    {% if user.profile.is_admin %}
+                    <a href="{% url 'balita_edit' b.pk %}" class="btn btn-sm btn-light" title="Edit"><i class="bi bi-pencil text-warning"></i></a>
+                    <a href="{% url 'balita_delete' b.pk %}" class="btn btn-sm btn-light" title="Hapus"><i class="bi bi-trash text-danger"></i></a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="12" class="text-center py-5 text-muted">
+                <i class="bi bi-inbox fs-1 d-block mb-2"></i>Tidak ada data ditemukan
+            </td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if page_obj.has_other_pages %}
+    <div class="card-footer bg-white d-flex justify-content-between align-items-center py-3 px-4">
+        <small class="text-muted">
+            Menampilkan {{ page_obj.start_index }}-{{ page_obj.end_index }} dari {{ page_obj.paginator.count }} data
+        </small>
+        <nav>
+            <ul class="pagination pagination-sm mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}">‹</a></li>
+                {% endif %}
+                {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <li class="page-item"><a class="page-link" href="?page={{ num }}&{{ request.GET.urlencode }}">{{ num }}</a></li>
+                {% endif %}
+                {% endfor %}
+                {% if page_obj.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}">›</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
